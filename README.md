@@ -20,4 +20,4 @@ linuxcnc имя_файла.ini
 ```
 где «имя_файла.ini» – ini-файл исходной управляющей программы станка, в которую добавили строки п.3. Убедиться, что в интерфейсе на центральных вкладках появилась панель ConfigureTask (см. рис. ниже).
 
-![ConfigureTaskPanel](ConfigureTask.png)
+![ConfigureTaskPanel](ConfigureTaskPanel.png)
