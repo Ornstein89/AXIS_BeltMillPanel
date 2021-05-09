@@ -8,6 +8,7 @@ import gtk
 import linuxcnc
 import os
 import json
+import io
 
 class HandlerClass:
     '''
@@ -15,36 +16,30 @@ class HandlerClass:
     '''
 
     # типы фрезеровки в combobox
-    milling_types = ["diagonal", "diagonalRL", "perforation",
+    milling_types = ["diagonal", "diagonal_rl", "perforation",
     "transverse", "cone"]
 
     # ссылки на шаблоны  GCode
-    templates_list = ["template_diagonal.txt", "template_diagonalRL.txt",
-        "template_perforation.txt", "template_transverse.txt", "template_cone.txt"]   
+    # templates_list = ["template_diagonal.txt", "template_diagonalRL.txt",
+    #     "template_perforation.txt", "template_transverse.txt", "template_cone.txt"]   
 
     # ссылки на изображения со схемой для каждого типа фрезеровки
-    image_list = ["img_diagonal.png", "img_diagonalRL.png",
-        "img_perforation.png", "img_transverse.png", "img_cone.png"]
+    # image_list = ["img_diagonal.png", "img_diagonalRL.png",
+    #     "img_perforation.png", "img_transverse.png", "img_cone.png"]
 
     # список элементов управления, которые активны для пазов разной формы
+    # имена должны соответствовать именам в файле *.ui
+    # имена также используются с фигурными скобками для подстановки параметров в шаблоны
     active_control_list = {
         "diagonal":["spnWD", "spnWd", "spn_alpha",
                     "spnS", "spn_d", "spn_p2"],
-        "diagonalRL":["spnWD", "spnWd", "spn_alpha",
+        "diagonal_rl":["spnWD", "spnWd", "spn_alpha",
                     "spnS", "spn_d", "spn_p2"],
         "perforation":["spnS", "spn_d"],
         "transverse":["spnWD", "spnWd","spnS", "spn_d", "spn_p2"],
         "cone":["spnS", "spn_d", "spnD"],
         "all":["spnWD", "spnWd", "spn_d", "spn_alpha",
         "spnS", "spn_p2", "spnD"] }
-
-    replacement_list = {
-        "diagonal":[]
-        "diagonalRL":[],
-        "perforation":[],
-        "transverse":[],
-        "cone":[],
-    }
 
     def on_cmbMillType_changed(self, widget, data=None):
         '''
@@ -65,7 +60,7 @@ class HandlerClass:
 
         model = cmbMillType.get_model()
         index = model[item]
-        milling_type_number = index[1]  # строка с названием типа обработки (см. модель, Glade *.ui файл)
+        milling_type_number = index[1]  # порядковый номер типа обработки (см. модель, Glade *.ui файл)
         milling_type = index[2]         # строка с названием типа обработки (см. модель, Glade *.ui файл)
 
         print "*** index[0]=", index[0] , ", index[1]=", index[1], ", index[2]=", index[2]
@@ -73,7 +68,7 @@ class HandlerClass:
 
         # переключить изображение схемы обработки
         imgDrawing = self.builder.get_object('imgDrawing')
-        imgDrawing = imgDrawing.set_from_file(self.image_list[milling_type_number])
+        imgDrawing = imgDrawing.set_from_file("img_"+milling_type+".png")
         #pixbuf = gtk.gdk.new_from_file_at_scale(image_list[milling_type_number], 400, 800, True)
         #pixbuf = gtk.gdk.GdkPixbuf.Pixbuf.new_from_file_at_scale(image_list[milling_type_number], 400, 800, True)
         #pixbuf = gtk.gdk.Pixbuf.new_from_file_at_scale(image_list[milling_type_number], 400, 800, True)
@@ -87,64 +82,41 @@ class HandlerClass:
                 self.builder.get_object(control_name).set_sensitive(False)
                 
         return
-    
-    def on_btnSave_clicked(self,widget):
-        '''
-        Обработчик нажатия кнопки сохранения программы обработки. Подставляет в шаблон,
-        соответствующий типу фрезеровки, параметры из GUI, сохраняет под именем,
-        выбранным в диалоговом окне и загружает в AXIS
-        '''
 
+    def save_file(self):
         window1 = self.builder.get_object('window1')
-
         cmbMillType = self.builder.get_object('cmbMillType') # ссылка combobox 'cmbMillType', в котором выбирается тип фрезеровки
         item = cmbMillType.get_active_iter() # ссылка на выбранный элкмент в combobox
 
         if item is None:
             #TODO отображать диалоговое окно с предупреждением о том, что некорректный тип обработки
-            return
-
-        "spnNumber"
-        "spn_alpha"
-        
-        "spnLength"
-        "wpnWidth"
-        "spnWd"
-        "spnWD"
-        "spn_d"
-        "spnD"
-        "spnS"
-        "spn_p2"
+            return None
 
         model = cmbMillType.get_model()
         index = model[item]
-        milling_type_number = index[1]  # строка с названием типа обработки (см. модель, Glade *.ui файл)
+        milling_type_number = index[1]  # порядковый номер типа обработки (см. модель, Glade *.ui файл)
         milling_type = index[2]         # строка с названием типа обработки (см. модель, Glade *.ui файл)
 
         
         #чтение шаблона
-        f1 = open(self.templates_list[milling_type_number],'rb')
-        filedata1 = f1.read()
-        f1.close()
-        
-        # print "\nФайл 1\n=========================="
-        # print filedata1
-        
-        # f2 = open("Фрезерование паза с комментриями.ngc",'rb')
-        # filedata2 = f2.read()
-        # f2.close()
-        
-        # print "\nФайл 2\n=========================="
-        # print filedata2
+        template_file_name = "template_"+milling_type+".txt"
+        try:
+            templatefile = io.open(template_file_name,'r', encoding='utf8')
+            templatedata = templatefile.read()
+            templatefile.close()
+        except Exception as e:
+            #TODO отображать диалоговое окно с предупреждением о том, что нет файла шаблона
+            print "ERROR: ошибка при открытии файла ", template_file_name, ", исключение ", e
+            return None
 
-        #["Сверление с комментариями.ngc", "Фрезерование паза с комментриями.ngc"]
-        #замена
-        replacements = [["#<_i>",],
-            ["#<_N>",],
-            ["#<_alpha>",],
-            ["#<_beta>",],
-            ["#<_beta>",],
-            ["#<_F>",]]
+        # замена
+        for control_name in self.active_control_list[milling_type]:
+            input_field = self.builder.get_object(control_name)
+            #DEBUG print dir(input_field)
+            #DEBUG print "*** input_field.get_value() = ", str(input_field.get_value())
+            #DEBUG value = input_field.get_value_as_int()
+            value = input_field.get_value()
+            templatedata.replace("{" + control_name + "}",  u"%0.2f" % value)
         
         #https://python-gtk-3-tutorial.readthedocs.io/en/latest/dialogs.html
         #https://github.com/cnc-club/linuxcnc-features/blob/master/features.py
@@ -171,18 +143,51 @@ class HandlerClass:
                     filename += ".ngc"
                 #f = open(filename, "w")
                 #f.write(gcode)
-                print "*** filename = ", filename 
+                print "*** filename = ", filename
+        except Exception as e:
+            #TODO уведомление
+            print "ERROR: ошибка при открытии диалога выбора файла, исключение ", e
+            return None
             #f.close()
         finally :
             filechooserdialog.destroy()
+        
+        try:
+            newfile = io.open(filename, "w", encoding='utf8')
+            newfile.write(templatedata)
+            newfile.close()
+        except Exception as e:
+            #TODO уведомление
+            print "ERROR: ошибка при записи файла ", filename, ", исключение ", e
+            return None
         
         #TODO создание и запись нового файла когда будут готовы шаблоны
         #configfile = codecs.open(filename,'ab+','utf-8')
         #config.write(configfile)
         #configfile.close()
+        return filename
+    
+    def on_btnSave_clicked(self,widget):
+        '''
+        Обработчик нажатия кнопки сохранения программы обработки. Подставляет в шаблон,
+        соответствующий типу фрезеровки, параметры из GUI, сохраняет под именем,
+        выбранным в диалоговом окне (при этом НЕ загружает файл в AXIS)
+        '''
+        self.save_file()
+
         return
     
     def on_btnSaveAndOpen_clicked(self, widget):
+        '''
+        Обработчик нажатия кнопки сохранения программы обработки. Подставляет в шаблон,
+        соответствующий типу фрезеровки, параметры из GUI, сохраняет под именем,
+        выбранным в диалоговом окне и загружает в AXIS
+        '''
+        filename = self.save_file()
+        if filename is None:
+            return
+        os.system("axis-remote " + filename)
+
         #TODO сохранение
         
         #print "*** on_btnSaveAndOpen_clicked"
@@ -197,7 +202,7 @@ class HandlerClass:
         filename = "sample.ngc"
         #lxcnc.program_open(filename)
         #os.system("axis-remote --reload ")
-        os.system("axis-remote " + filename)
+        
         #lxcnc.mode(linuxcnc.MODE_MANUAL)
         return
 

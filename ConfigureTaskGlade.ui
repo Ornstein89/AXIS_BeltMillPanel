@@ -123,7 +123,7 @@
       <row>
         <col id="0" translatable="yes">Диагональная  RL</col>
         <col id="1">1</col>
-        <col id="2" translatable="yes">diagonalrl</col>
+        <col id="2" translatable="yes">diagonal_rl</col>
       </row>
       <row>
         <col id="0" translatable="yes">Перфорация</col>
@@ -133,7 +133,7 @@
       <row>
         <col id="0" translatable="yes">Поперечная</col>
         <col id="1">4</col>
-        <col id="2" translatable="yes">transversal</col>
+        <col id="2" translatable="yes">transverse</col>
       </row>
       <row>
         <col id="0" translatable="yes">Конус</col>
