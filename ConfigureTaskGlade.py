@@ -9,19 +9,28 @@ import linuxcnc
 import os
 import json
 import io
+import math
+import configparser
 
 class HandlerClass:
     '''
     class with gladevcp callback handlers
     '''
 
+    config_file_name = "AXIS_BeltMillPanelSetting.cfg"
+
     # типы фрезеровки в combobox
     milling_types = ["diagonal", "diagonal_rl", "perforation",
     "transverse", "cone"]
 
     # ссылки на шаблоны  GCode
-    # templates_list = ["template_diagonal.txt", "template_diagonalRL.txt",
-    #     "template_perforation.txt", "template_transverse.txt", "template_cone.txt"]   
+    templates_list = {"diagonal":"template_diagonal.txt",
+                    "diagonal_rl":"template_diagonal_rl.txt",
+        "perforation":"template_perforation.txt",
+        "transverse":"template_diagonal.txt", # тот же шаблон, что для диагональной, но alpha = 90
+        "cone":"template_perforation.txt"} # тот же шаблон, что для сверления
+
+    prev_milling_type = "default"
 
     # ссылки на изображения со схемой для каждого типа фрезеровки
     # image_list = ["img_diagonal.png", "img_diagonalRL.png",
@@ -31,15 +40,15 @@ class HandlerClass:
     # имена должны соответствовать именам в файле *.ui
     # имена также используются с фигурными скобками для подстановки параметров в шаблоны
     active_control_list = {
-        "diagonal":["spnWD", "spnWd", "spn_alpha",
-                    "spnS", "spn_d", "spn_p2"],
-        "diagonal_rl":["spnWD", "spnWd", "spn_alpha",
-                    "spnS", "spn_d", "spn_p2"],
-        "perforation":["spnS", "spn_d"],
-        "transverse":["spnWD", "spnWd","spnS", "spn_d", "spn_p2"],
-        "cone":["spnS", "spn_d", "spnD"],
-        "all":["spnWD", "spnWd", "spn_d", "spn_alpha",
-        "spnS", "spn_p2", "spnD"] }
+        "diagonal"   :["spnWD", "spnWd", "spn_alpha", "spnS", "spn_d", "spn_p2", "spnNumber",
+                       "spnLength", "spnWidth"], # также {parameter_beta}
+        "diagonal_rl":["spnWD", "spnWd", "spn_alpha", "spnS", "spn_d", "spn_p2", "spnNumber",
+                       "spnLength", "spnWidth"], # также {parameter_beta}
+        "perforation":["spnS", "spn_d", "spnLength", "spnWidth"],
+        "transverse" :["spnWD", "spnWd", "spnS", "spn_d", "spn_p2", "spnLength", "spnWidth"],
+        "cone"       :["spnS", "spn_d", "spnD", "spnLength", "spnWidth"],
+        "all"        :["spnWD", "spnWd", "spn_d", "spn_alpha", "spnS", 
+                       "spn_p2", "spnD", "spnLength", "spnWidth"] }
 
     def on_cmbMillType_changed(self, widget, data=None):
         '''
@@ -63,6 +72,18 @@ class HandlerClass:
         milling_type_number = index[1]  # порядковый номер типа обработки (см. модель, Glade *.ui файл)
         milling_type = index[2]         # строка с названием типа обработки (см. модель, Glade *.ui файл)
 
+        # включение alpha=90 градусов в интерфейсе для поперечного типа фрезеровки
+        # если произошла смена с любого типа на поперечный
+        if (milling_type == "transverse") and (self.prev_milling_type != "transverse"):
+            spnAlpha = self.builder.get_object("spnAlpha")
+            self.alpha = spnAlpha.get_value()
+            spnAlpha.set_value(90.0)
+        
+        # если произошла обратная смена
+        if (milling_type != "transverse") and (self.prev_milling_type == "transverse"):
+            spnAlpha = self.builder.get_object("spnAlpha")
+            spnAlpha.set_value(self.alpha)       
+
         print "*** index[0]=", index[0] , ", index[1]=", index[1], ", index[2]=", index[2]
         print "*** milling_type_number = ", milling_type_number
 
@@ -80,7 +101,44 @@ class HandlerClass:
                 self.builder.get_object(control_name).set_sensitive(True)
             else:
                 self.builder.get_object(control_name).set_sensitive(False)
+
+        self.prev_milling_type = milling_type
                 
+        return
+    
+    def save_settings(self):
+        # https://cpython-test-docs.readthedocs.io/en/latest/library/configparser.html
+        config_obj = configparser.ConfigParser(strict=False)
+        config_obj["DEFAULT"] = {}
+        for cnt_name in self.active_control_list["all"]:
+            input_field = self.builder.get_object(cnt_name)
+            config_obj["DEFAULT"][cnt_name] = input_field.get_value()
+        
+        if self.prev_milling_type == "transverse":
+            config_obj["DEFAULT"]["spn_alpha"] = self.alpha
+
+        config_file = io.open(self.config_file_name, 'w', encoding='utf8')
+        config_obj.write(config_file)
+        config_file.close()
+        return
+
+    def load_settings(self):
+        # https://cpython-test-docs.readthedocs.io/en/latest/library/configparser.html
+        config = configparser.ConfigParser(strict=False)
+        try:
+            config.read(self.config_file_name)
+        except:
+            return
+        
+        if "DEFUALT" not in config:
+            return
+        
+        for key in config["DEFUALT"]:
+            try:
+                input_field = self.builder.get_object(key)
+                input_field.set_value(config["DEFUALT"][key])
+            except:
+                continue
         return
 
     def save_file(self):
@@ -108,6 +166,10 @@ class HandlerClass:
             #TODO отображать диалоговое окно с предупреждением о том, что нет файла шаблона
             print "ERROR: ошибка при открытии файла ", template_file_name, ", исключение ", e
             return None
+        
+        # подсчёт параметра parameter_beta = шаг * 180/3.1415 * радиус шкива
+        radius = 200.0; #TODO радиус шкива, уточнить
+        parameter_beta = math.radians(self.builder.get_object("spnS").get_value()/radius)
 
         # замена
         for control_name in self.active_control_list[milling_type]:

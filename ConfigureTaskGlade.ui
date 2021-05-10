@@ -318,7 +318,7 @@
                                     <property name="can_focus">False</property>
                                     <property name="left_padding">12</property>
                                     <child>
-                                      <object class="GtkSpinButton" id="wpnWidth">
+                                      <object class="GtkSpinButton" id="spnWidth">
                                         <property name="visible">True</property>
                                         <property name="can_focus">True</property>
                                         <property name="invisible_char">●</property>
