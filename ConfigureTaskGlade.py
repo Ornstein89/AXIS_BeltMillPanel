@@ -29,7 +29,8 @@ class HandlerClass:
         "perforation":"template_perforation.txt",
         "transverse":"template_diagonal.txt", # тот же шаблон, что для диагональной, но alpha = 90
         "cone":"template_perforation.txt"} # тот же шаблон, что для сверления
-
+    default_values = {"spnWD":35.0, "spnWd":5.0, "spn_d":4.0, "spn_alpha":40.0, "spnS":30.0, 
+                      "spn_p2":2.5, "spnD":4.0, "spnLength":920.0, "spnWidth":50.0, "spnNumber":11}
     prev_milling_type = "default"
 
     # ссылки на изображения со схемой для каждого типа фрезеровки
@@ -40,14 +41,14 @@ class HandlerClass:
     # имена должны соответствовать именам в файле *.ui
     # имена также используются с фигурными скобками для подстановки параметров в шаблоны
     active_control_list = {
-        "diagonal"   :["spnWD", "spnWd", "spn_alpha", "spnS", "spn_d", "spn_p2", "spnNumber",
+        "diagonal"   :["spnWD", "spnWd", "spn_alpha", "spnS", "spn_d", "spnNumber", "spn_p2", "spnNumber",
                        "spnLength", "spnWidth"], # также {parameter_beta}
-        "diagonal_rl":["spnWD", "spnWd", "spn_alpha", "spnS", "spn_d", "spn_p2", "spnNumber",
+        "diagonal_rl":["spnWD", "spnWd", "spn_alpha", "spnS", "spn_d", "spnNumber", "spn_p2", "spnNumber",
                        "spnLength", "spnWidth"], # также {parameter_beta}
-        "perforation":["spnS", "spn_d", "spnLength", "spnWidth"],
-        "transverse" :["spnWD", "spnWd", "spnS", "spn_d", "spn_p2", "spnLength", "spnWidth"],
-        "cone"       :["spnS", "spn_d", "spnD", "spnLength", "spnWidth"],
-        "all"        :["spnWD", "spnWd", "spn_d", "spn_alpha", "spnS", 
+        "perforation":["spnS", "spn_d", "spnNumber", "spnLength", "spnWidth"],
+        "transverse" :["spnWD", "spnWd", "spnS", "spn_d", "spnNumber", "spn_p2", "spnLength", "spnWidth"],
+        "cone"       :["spnS", "spn_d", "spnNumber", "spnD", "spnLength", "spnWidth"],
+        "all"        :["spnWD", "spnWd", "spn_d", "spn_alpha", "spnS", "spnNumber",
                        "spn_p2", "spnD", "spnLength", "spnWidth"] }
 
     def on_cmbMillType_changed(self, widget, data=None):
@@ -74,15 +75,15 @@ class HandlerClass:
 
         # включение alpha=90 градусов в интерфейсе для поперечного типа фрезеровки
         # если произошла смена с любого типа на поперечный
-        if (milling_type == "transverse") and (self.prev_milling_type != "transverse"):
-            spnAlpha = self.builder.get_object("spnAlpha")
-            self.alpha = spnAlpha.get_value()
-            spnAlpha.set_value(90.0)
+        # if (milling_type == "transverse") and (self.prev_milling_type != "transverse"):
+        #     spnAlpha = self.builder.get_object("spnAlpha")
+        #     self.alpha = spnAlpha.get_value()
+        #     spnAlpha.set_value(90.0)
         
         # если произошла обратная смена
-        if (milling_type != "transverse") and (self.prev_milling_type == "transverse"):
-            spnAlpha = self.builder.get_object("spnAlpha")
-            spnAlpha.set_value(self.alpha)       
+        # if (milling_type != "transverse") and (self.prev_milling_type == "transverse"):
+        #     spnAlpha = self.builder.get_object("spnAlpha")
+        #     spnAlpha.set_value(self.alpha)       
 
         print "*** index[0]=", index[0] , ", index[1]=", index[1], ", index[2]=", index[2]
         print "*** milling_type_number = ", milling_type_number
@@ -109,13 +110,14 @@ class HandlerClass:
     def save_settings(self):
         # https://cpython-test-docs.readthedocs.io/en/latest/library/configparser.html
         config_obj = configparser.ConfigParser(strict=False)
+        config_obj.optionxform = str
         config_obj["DEFAULT"] = {}
         for cnt_name in self.active_control_list["all"]:
             input_field = self.builder.get_object(cnt_name)
-            config_obj["DEFAULT"][cnt_name] = input_field.get_value()
+            config_obj["DEFAULT"][cnt_name] = u"%0.2f" %  input_field.get_value()
         
-        if self.prev_milling_type == "transverse":
-            config_obj["DEFAULT"]["spn_alpha"] = self.alpha
+        # if self.prev_milling_type == "transverse":
+        #     config_obj["DEFAULT"]["spn_alpha"] = u"%0.2f" % self.alpha
 
         config_file = io.open(self.config_file_name, 'w', encoding='utf8')
         config_obj.write(config_file)
@@ -124,19 +126,34 @@ class HandlerClass:
 
     def load_settings(self):
         # https://cpython-test-docs.readthedocs.io/en/latest/library/configparser.html
-        config = configparser.ConfigParser(strict=False)
+        print "*** load_settings()"
+        config_obj = configparser.ConfigParser(strict=False)
+        config_obj.optionxform = str
         try:
-            config.read(self.config_file_name)
+            config_obj.read(self.config_file_name)
         except:
             return
+        print "*** config = ", config_obj
         
-        if "DEFUALT" not in config:
+        if "DEFAULT" not in config_obj:
             return
         
-        for key in config["DEFUALT"]:
+        print "*** config[\"DEFAULT\"] = ", config_obj["DEFAULT"]
+        
+        for key in config_obj["DEFAULT"]:
+            print "*** key = ", key
             try:
                 input_field = self.builder.get_object(key)
-                input_field.set_value(config["DEFUALT"][key])
+                try:
+                    value = float(config_obj["DEFAULT"][key])
+                    print "*** value = ", value
+                    if key == "spnNumber":
+                        input_field.set_value(int(value))
+                    else:
+                        input_field.set_value(value)
+                except:
+                    input_field.set_value(self.default_values[key])
+                    continue
             except:
                 continue
         return
@@ -157,7 +174,7 @@ class HandlerClass:
 
         
         #чтение шаблона
-        template_file_name = "template_"+milling_type+".txt"
+        template_file_name = self.templates_list[milling_type]#"template_"+milling_type+".txt"
         try:
             templatefile = io.open(template_file_name,'r', encoding='utf8')
             templatedata = templatefile.read()
@@ -166,19 +183,33 @@ class HandlerClass:
             #TODO отображать диалоговое окно с предупреждением о том, что нет файла шаблона
             print "ERROR: ошибка при открытии файла ", template_file_name, ", исключение ", e
             return None
-        
+        #DEBUG print "*** templatedata = ", templatedata
         # подсчёт параметра parameter_beta = шаг * 180/3.1415 * радиус шкива
         radius = 200.0; #TODO радиус шкива, уточнить
-        parameter_beta = math.radians(self.builder.get_object("spnS").get_value()/radius)
-
+        templatedata = templatedata.replace(u"{R}",  u"%0.2f" % radius)
+        print "*** S/r = ", self.builder.get_object("spnS").get_value()/radius
+        parameter_beta = math.degrees(self.builder.get_object("spnS").get_value()/radius)
+        print "*** parameter_beta = ", parameter_beta
+        templatedata = templatedata.replace(u"{parameter_beta}",  u"%0.2f" % parameter_beta)
+        
         # замена
-        for control_name in self.active_control_list[milling_type]:
+        for control_name in self.active_control_list["all"]:
+            print "*** control_name = ", control_name
             input_field = self.builder.get_object(control_name)
             #DEBUG print dir(input_field)
             #DEBUG print "*** input_field.get_value() = ", str(input_field.get_value())
             #DEBUG value = input_field.get_value_as_int()
             value = input_field.get_value()
-            templatedata.replace("{" + control_name + "}",  u"%0.2f" % value)
+            print "*** value = ", value
+            source_to_replace = u"{" + control_name + u"}"
+            dst_to_replace = u"%0.2f" % value
+            print "*** source_to_replace = ", source_to_replace
+            print "*** dst_to_replace = ", dst_to_replace
+            templatedata = templatedata.replace(u"{" + control_name + u"}",  u"%0.2f" % value)
+            print "*** replace is done"
+
+
+        #DEBUG print "*** templatedata with replacements = ", templatedata
         
         #https://python-gtk-3-tutorial.readthedocs.io/en/latest/dialogs.html
         #https://github.com/cnc-club/linuxcnc-features/blob/master/features.py
@@ -248,6 +279,9 @@ class HandlerClass:
         filename = self.save_file()
         if filename is None:
             return
+
+        # загрузка сохранённого файла
+        # https://www.forum.linuxcnc.org/41-guis/34454-python-open-ngc    
         os.system("axis-remote " + filename)
 
         #TODO сохранение
@@ -256,16 +290,40 @@ class HandlerClass:
         #dir_path = os.path.dirname(os.path.realpath(__file__))
         #print "*** dir_path = ", dir_path
         #print "*** os.getcwd() = ", os.getcwd()
+
         #lxcnc = linuxcnc.command()
         #lxcnc.mode(linuxcnc.MODE_MDI)
-        
-        # загрузка сохранённого файла
-        # https://www.forum.linuxcnc.org/41-guis/34454-python-open-ngc
-        filename = "sample.ngc"
         #lxcnc.program_open(filename)
         #os.system("axis-remote --reload ")
         
         #lxcnc.mode(linuxcnc.MODE_MANUAL)
+        return
+    
+    def on_destroy(self, obj, data=None):
+        # return True --> no, don't close
+
+        # messagedialog = gtk.MessageDialog(parent=self, flags= gtk.DIALOG_MODAL & gtk.DIALOG_DESTROY_WITH_PARENT, 
+        #                                   type=gtk.MESSAGE_QUESTION, buttons=gtk.BUTTONS_OK_CANCEL, message_format="Click on 'Cancel' to leave the application open.")
+        # messagedialog.show_all()
+        # result=messagedialog.run()
+        # messagedialog.destroy()
+        # if result==gtk.RESPONSE_CANCEL:
+        #     return True
+        print "*** on_destroy()"
+        self.save_settings()
+        return
+    
+    def on_unix_signal(self, signum, stack_frame):
+        print "*** on_unix_signal()"
+        self.save_settings()
+        return
+    
+    def on_delete_event(self, a, b):
+        print "*** on_delete_event()"
+        return
+    
+    def on_destroy_event(self, a, b):
+        print "*** on_destroy_event()"
         return
 
     def __init__(self, halcomp,builder,useropts):
@@ -284,6 +342,8 @@ class HandlerClass:
         self.halcomp = halcomp
         self.builder = builder
         self.nhits = 0
+        self.load_settings()
+        #self.builder.get_object('window1').connect('delete-event', self.on_destroy)
         return
 
 def get_handlers(halcomp,builder,useropts):

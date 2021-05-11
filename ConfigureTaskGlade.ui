@@ -145,6 +145,9 @@
   <object class="GtkWindow" id="window1">
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">Программа</property>
+    <signal name="destroy" handler="on_destroy" swapped="no"/>
+    <signal name="destroy-event" handler="on_destroy_event" swapped="no"/>
+    <signal name="delete-event" handler="on_delete_event" swapped="no"/>
     <child>
       <object class="GtkHBox" id="hbox1">
         <property name="visible">True</property>
@@ -769,6 +772,7 @@
                                     <property name="primary_icon_sensitive">True</property>
                                     <property name="secondary_icon_sensitive">True</property>
                                     <property name="adjustment">adjustmentD</property>
+                                    <property name="digits">2</property>
                                     <property name="numeric">True</property>
                                   </object>
                                 </child>
