@@ -109,52 +109,67 @@ class HandlerClass:
     
     def save_settings(self):
         # https://cpython-test-docs.readthedocs.io/en/latest/library/configparser.html
-        config_obj = configparser.ConfigParser(strict=False)
-        config_obj.optionxform = str
-        config_obj["DEFAULT"] = {}
+        if self.config_obj is None:
+            self.config_obj = configparser.ConfigParser(strict=False)
+            self.config_obj.optionxform = str
+            self.config_obj["DEFAULT"] = {}
+            self.config_obj["DEFAULT"]["PulleyRadius"] = str(31.831)
+
         for cnt_name in self.active_control_list["all"]:
-            input_field = self.builder.get_object(cnt_name)
-            config_obj["DEFAULT"][cnt_name] = u"%0.2f" %  input_field.get_value()
+            try:
+                input_field = self.builder.get_object(cnt_name)
+                self.config_obj["DEFAULT"][cnt_name] = u"%0.2f" %  input_field.get_value()
+            except:
+                continue
         
         # if self.prev_milling_type == "transverse":
         #     config_obj["DEFAULT"]["spn_alpha"] = u"%0.2f" % self.alpha
-
-        config_file = io.open(self.config_file_name, 'w', encoding='utf8')
-        config_obj.write(config_file)
-        config_file.close()
+        try:
+            config_file = io.open(self.config_file_name, 'w', encoding='utf8')
+            self.config_obj.write(config_file)
+            config_file.close()
+        except Exception as e:
+            print "ОЩИБКА: невозможна запись файла настроек ", self.config_file_name, ", исключение ", e
+            return
         return
 
     def load_settings(self):
         # https://cpython-test-docs.readthedocs.io/en/latest/library/configparser.html
-        print "*** load_settings()"
-        config_obj = configparser.ConfigParser(strict=False)
-        config_obj.optionxform = str
+        #DEBUG print "*** load_settings()"
+        self.config_obj = configparser.ConfigParser(strict=False)
+        self.config_obj.optionxform = str
         try:
-            config_obj.read(self.config_file_name)
-        except:
+            self.config_obj.read(self.config_file_name)
+        except Exception as e:
+            print "ОШИБКА: Не удалось открыть файл настроек  ", self.config_file_name, ", исключение ", e
+            self.config_obj = None
             return
-        print "*** config = ", config_obj
+        print "*** config = ", self.config_obj
         
-        if "DEFAULT" not in config_obj:
+        if "DEFAULT" not in self.config_obj:
+            print "ОШИБКА: В файле настроек ", self.config_file_name, "не найдена секция [DEFAULT]"
+            self.config_obj = None
             return
         
-        print "*** config[\"DEFAULT\"] = ", config_obj["DEFAULT"]
+        #DEBUG print "*** config[\"DEFAULT\"] = ", self.config_obj["DEFAULT"]
         
-        for key in config_obj["DEFAULT"]:
-            print "*** key = ", key
+        for key in self.config_obj["DEFAULT"]:
+            #DEBUG print "*** key = ", key
             try:
                 input_field = self.builder.get_object(key)
                 try:
-                    value = float(config_obj["DEFAULT"][key])
-                    print "*** value = ", value
+                    value = float(self.config_obj["DEFAULT"][key])
+                    #DEBUG print "*** value = ", value
                     if key == "spnNumber":
                         input_field.set_value(int(value))
                     else:
                         input_field.set_value(value)
                 except:
                     input_field.set_value(self.default_values[key])
+                    print "ОШИБКА: В файле настроек ", self.config_file_name, "не найден ключ ", key
                     continue
-            except:
+            except Exception as e:
+                print "ОШИБКА: Исключение ", e, " при чтении файла настроек  ", self.config_file_name
                 continue
         return
 
@@ -185,8 +200,14 @@ class HandlerClass:
             return None
         #DEBUG print "*** templatedata = ", templatedata
         # подсчёт параметра parameter_beta = шаг * 180/3.1415 * радиус шкива
-        radius = 31.831; #TODO радиус шкива, уточнить
-        templatedata = templatedata.replace(u"{R}",  u"%0.2f" % radius)
+        if self.config_obj is None:
+            radius = 31.831 #TODO радиус шкива, уточнить
+        else:
+            try:
+                radius = float(self.config_obj["DEFAULT"]["PulleyRadius"])
+            except:
+                radius = 31.831
+        templatedata = templatedata.replace(u"{R}",  u"%0.3f" % radius)
         print "*** S/r = ", self.builder.get_object("spnS").get_value()/radius
         parameter_beta = math.degrees(self.builder.get_object("spnS").get_value()/radius)
         print "*** parameter_beta = ", parameter_beta
