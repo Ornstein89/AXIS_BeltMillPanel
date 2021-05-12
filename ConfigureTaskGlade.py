@@ -185,7 +185,7 @@ class HandlerClass:
             return None
         #DEBUG print "*** templatedata = ", templatedata
         # подсчёт параметра parameter_beta = шаг * 180/3.1415 * радиус шкива
-        radius = 200.0; #TODO радиус шкива, уточнить
+        radius = 31.831; #TODO радиус шкива, уточнить
         templatedata = templatedata.replace(u"{R}",  u"%0.2f" % radius)
         print "*** S/r = ", self.builder.get_object("spnS").get_value()/radius
         parameter_beta = math.degrees(self.builder.get_object("spnS").get_value()/radius)
