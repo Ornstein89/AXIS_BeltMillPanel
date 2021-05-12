@@ -5,6 +5,7 @@ import hal
 import glib
 import time
 import gtk
+from gtk import gdk
 import linuxcnc
 import os
 import json
@@ -27,7 +28,7 @@ class HandlerClass:
     templates_list = {"diagonal":"template_diagonal.txt",
                     "diagonal_rl":"template_diagonal_rl.txt",
         "perforation":"template_perforation.txt",
-        "transverse":"template_diagonal.txt", # тот же шаблон, что для диагональной, но alpha = 90
+        "transverse":"template_transverse.txt", # тот же шаблон, что для диагональной, но alpha = 90
         "cone":"template_perforation.txt"} # тот же шаблон, что для сверления
     default_values = {"spnWD":35.0, "spnWd":5.0, "spn_d":4.0, "spn_alpha":40.0, "spnS":30.0, 
                       "spn_p2":2.5, "spnD":4.0, "spnLength":920.0, "spnWidth":50.0, "spnNumber":11}
@@ -89,8 +90,29 @@ class HandlerClass:
         print "*** milling_type_number = ", milling_type_number
 
         # переключить изображение схемы обработки
+        img_filename = "img_"+milling_type+".png"
         imgDrawing = self.builder.get_object('imgDrawing')
-        imgDrawing = imgDrawing.set_from_file("img_"+milling_type+".png")
+        imgDrawing = imgDrawing.set_from_file(img_filename)
+        pixbuf = gtk.gdk.pixbuf_new_from_file(img_filename)
+        print "*** DEBUG pixbuf = ", pixbuf
+        print "*** DEBUG pixbuf.__dict__.keys() = ", dir(pixbuf)
+
+        '''
+        Pixbuf:
+        'add_alpha'
+        'apply_embedded_orientation'
+        'chain', 'composite', 'composite_color', 'composite_color_simple', 'connect', 'connect_after', 'connect_object', 'connect_object_after', 'copy',
+        'copy_area', 'disconnect', 'disconnect_by_func', 'emit', 'emit_stop_by_name', 'equal', 'fill', 'flip',
+        'freeze_notify', 'get_bits_per_sample', 'get_colorspace', 'get_data', 'get_from_drawable',
+        'get_from_image', 'get_has_alpha', 'get_height', 'get_n_channels', 'get_option', 'get_pixels',
+        'get_pixels_array', 'get_properties', 'get_property', 'get_rowstride', 'get_width', 'handler_block',
+        'handler_block_by_func', 'handler_disconnect', 'handler_is_connected', 'handler_unblock', 'handler_unblock_by_func',
+        'load', 'load_async', 'load_finish', 'notify', 'pixel_array', 'props', 'render_pixmap_and_mask', 'render_threshold_alpha',
+        'render_to_drawable', 'render_to_drawable_alpha', 'rotate_simple', 'saturate_and_pixelate', 'save', 'save_to_callback',
+        'scale', 'scale_simple', 'set_data', 'set_properties', 'set_property', 'stop_emission', 'subpixbuf', 'thaw_notify', 'to_string',
+        'weak_ref'
+        '''
+
         #pixbuf = gtk.gdk.new_from_file_at_scale(image_list[milling_type_number], 400, 800, True)
         #pixbuf = gtk.gdk.GdkPixbuf.Pixbuf.new_from_file_at_scale(image_list[milling_type_number], 400, 800, True)
         #pixbuf = gtk.gdk.Pixbuf.new_from_file_at_scale(image_list[milling_type_number], 400, 800, True)
