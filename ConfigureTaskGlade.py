@@ -29,7 +29,7 @@ class HandlerClass:
                     "diagonal_rl":"template_diagonal_rl.txt",
         "perforation":"template_perforation.txt",
         "transverse":"template_transverse.txt", # тот же шаблон, что для диагональной, но alpha = 90
-        "cone":"template_perforation.txt"} # тот же шаблон, что для сверления
+        "cone":"template_cone.txt"} # тот же шаблон, что для сверления
     default_values = {"spnWD":35.0, "spnWd":5.0, "spn_d":4.0, "spn_alpha":40.0, "spnS":30.0, 
                       "spn_p2":2.5, "spnD":4.0, "spnLength":920.0, "spnWidth":50.0, "spnNumber":11}
     prev_milling_type = "default"
@@ -86,16 +86,17 @@ class HandlerClass:
         #     spnAlpha = self.builder.get_object("spnAlpha")
         #     spnAlpha.set_value(self.alpha)       
 
-        print "*** index[0]=", index[0] , ", index[1]=", index[1], ", index[2]=", index[2]
-        print "*** milling_type_number = ", milling_type_number
+        #DEBUG print "*** index[0]=", index[0] , ", index[1]=", index[1], ", index[2]=", index[2]
+        #DEBUG print "*** milling_type_number = ", milling_type_number
 
         # переключить изображение схемы обработки
         img_filename = "img_"+milling_type+".png"
         imgDrawing = self.builder.get_object('imgDrawing')
         imgDrawing = imgDrawing.set_from_file(img_filename)
         pixbuf = gtk.gdk.pixbuf_new_from_file(img_filename)
-        print "*** DEBUG pixbuf = ", pixbuf
-        print "*** DEBUG pixbuf.__dict__.keys() = ", dir(pixbuf)
+        #DEBUG print "*** DEBUG pixbuf = ", pixbuf
+        #DEBUG print "*** DEBUG pixbuf.__dict__.keys() = ", dir(pixbuf)
+        # масштабирование наподобие https://stackoverflow.com/questions/5067310/pygtk-how-do-i-make-an-image-automatically-scale-to-fit-its-parent-widget/5069101
 
         '''
         Pixbuf:
