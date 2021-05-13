@@ -17,9 +17,10 @@
     <property name="page_increment">100</property>
   </object>
   <object class="GtkAdjustment" id="adjustmentNumber">
-    <property name="lower">3</property>
+    <property name="lower">1</property>
     <property name="upper">9999</property>
-    <property name="step_increment">0.5</property>
+    <property name="value">5</property>
+    <property name="step_increment">1</property>
     <property name="page_increment">1</property>
   </object>
   <object class="GtkAdjustment" id="adjustmentS">
@@ -427,9 +428,6 @@
                             <property name="n_rows">2</property>
                             <property name="n_columns">4</property>
                             <child>
-                              <placeholder/>
-                            </child>
-                            <child>
                               <object class="GtkFrame" id="frame6">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
@@ -617,6 +615,7 @@
                                         <property name="adjustment">adjustmentS</property>
                                         <property name="digits">2</property>
                                         <property name="numeric">True</property>
+                                        <property name="update_policy">if-valid</property>
                                       </object>
                                     </child>
                                   </object>
@@ -658,6 +657,7 @@
                                         <property name="secondary_icon_sensitive">True</property>
                                         <property name="adjustment">adjustmentNumber</property>
                                         <property name="numeric">True</property>
+                                        <property name="update_policy">if-valid</property>
                                       </object>
                                     </child>
                                   </object>
@@ -721,6 +721,9 @@
                                 <property name="top_attach">1</property>
                                 <property name="bottom_attach">2</property>
                               </packing>
+                            </child>
+                            <child>
+                              <placeholder/>
                             </child>
                           </object>
                         </child>

@@ -243,13 +243,18 @@ class HandlerClass:
             #DEBUG print dir(input_field)
             #DEBUG print "*** input_field.get_value() = ", str(input_field.get_value())
             #DEBUG value = input_field.get_value_as_int()
-            value = input_field.get_value()
+            if control_name == 'spnNumber':
+                value = input_field.get_value_as_int()
+                dst_to_replace = u"%d" % value
+            else:
+                value = input_field.get_value()
+                dst_to_replace = u"%0.2f" % value
             print "*** value = ", value
             source_to_replace = u"{" + control_name + u"}"
-            dst_to_replace = u"%0.2f" % value
+            
             print "*** source_to_replace = ", source_to_replace
             print "*** dst_to_replace = ", dst_to_replace
-            templatedata = templatedata.replace(u"{" + control_name + u"}",  u"%0.2f" % value)
+            templatedata = templatedata.replace(source_to_replace,  dst_to_replace)
             print "*** replace is done"
 
 
